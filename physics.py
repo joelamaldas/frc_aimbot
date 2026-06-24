@@ -42,9 +42,16 @@ class PhysicsEngine:
         return x, y
     
     # rk4 physics test
-    def simulate_rk4(self, piece:GamePiece, x:float, y:float, z:float, vx:float, vy:float, vz:float, omega:float, pitch:float, roll:float, time_step:float, target_z:float):
+    def simulate_rk4(self, piece:GamePiece, x:float, y:float, z:float, vx:float, vy:float, vz:float, omega:float, pitch:float, roll:float, time_step:float, target_z:float, return_path:bool=False):
         h = time_step
+        
+        path_x, path_y, path_z = [], [], []
+
         while z > 0:
+            if return_path:
+                path_x.append(x)
+                path_y.append(y)
+                path_z.append(z)
 
             last_x = x
             last_y = y
@@ -81,13 +88,25 @@ class PhysicsEngine:
                     frac = (last_z - target_z) / dz
                     lx = last_x + frac * (x - last_x)
                     ly = last_y + frac * (y - last_y)
+                    if return_path:
+                        path_x.append(lx)
+                        path_y.append(ly)
+                        path_z.append(target_z)
+                        return lx, ly, path_x, path_y, path_z
                     return lx, ly
                 else:
+                    if return_path:
+                        path_x.append(x)
+                        path_y.append(y)
+                        path_z.append(z)
+                        return x, y, path_x, path_y, path_z
                     return x, y
             
+        if return_path:
+            return x, y, path_x, path_y, path_z
         return x, y
 
-    def simulate_shot(self, piece: GamePiece, state: ShotState, rpm: float, hood_deg: float, aim_offset_rad: float, target_z:float):
+    def simulate_shot(self, piece: GamePiece, state: ShotState, rpm: float, hood_deg: float, aim_offset_rad: float, target_z:float, return_path:bool=False):
         lat = self.robot.system_latency
         real_v_rad = state.v_rad + (state.a_rad * lat)
         real_v_tan = state.v_tan + (state.a_tan * lat)
@@ -109,4 +128,4 @@ class PhysicsEngine:
         vy = surface_vel * math.cos(phi) * math.sin(aim_offset_rad) + tip_vy
         vz = surface_vel * math.sin(phi)
         
-        return self.simulate_rk4(piece, self.robot.turret_x_offset, self.robot.turret_y_offset, self.robot.turret_z_offset, vx, vy, vz, spin, state.pitch, state.roll, 0.01, target_z)
+        return self.simulate_rk4(piece, self.robot.turret_x_offset, self.robot.turret_y_offset, self.robot.turret_z_offset, vx, vy, vz, spin, state.pitch, state.roll, 0.01, target_z, return_path=return_path)
